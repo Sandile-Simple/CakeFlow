@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="CakeFlow.Api/CakeFlow.Api.csproj" />
+  <Project Path="CakeFlow.Domain/CakeFlow.Domain.csproj" />
+  <Project Path="CakeFlow.Infrastructure/CakeFlow.Infrastructure.csproj" />
+</Solution>
