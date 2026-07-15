@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import BookingForm from "./features/booking/BookingForm";
 import Login from "./features/auth/Login";
 import BakerDashboard from "./features/baker/BakerDashboard";
+import DecoratorDashboard from "./features/decorator/DecoratorDashboard";
 
 function App() {
   return (
@@ -10,6 +11,7 @@ function App() {
         <Route path="/" element={<BookingForm />} />
         <Route path="/login" element={<Login />} />
         <Route path="/baker" element={<BakerDashboard />} />
+        <Route path="/decorator" element={<DecoratorDashboard />} />
       </Routes>
     </BrowserRouter>
   );
