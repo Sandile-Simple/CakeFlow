@@ -48,6 +48,7 @@ export default function Login() {
 
       if (role === "Baker") navigate("/baker");
       else if (role === "Decorator") navigate("/decorator");
+      else if (role === "FrontDesk" || role === "Owner") navigate("/frontdesk");
       else navigate("/");
     } catch (err) {
       setError("Invalid email or password.");
