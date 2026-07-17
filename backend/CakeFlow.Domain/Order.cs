@@ -2,6 +2,8 @@ namespace CakeFlow.Domain;
 
 public class Order
 {
+public int CompanyId { get; set; }
+    public Company? Company { get; set; }
     public int OrderId { get; set; }
     public string ClientName { get; set; } = string.Empty;
     public string ClientContact { get; set; } = string.Empty;

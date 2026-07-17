@@ -22,9 +22,15 @@ public class OrdersController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Order>>> GetOrders()
     {
+        var companyIdClaim = User.FindFirst("CompanyId")?.Value;
+        if (companyIdClaim == null || !int.TryParse(companyIdClaim, out var companyId))
+            return Unauthorized();
+
         return await _context.Orders
+            .Where(o => o.CompanyId == companyId)
             .Include(o => o.OrderItems)
             .Include(o => o.DesignInstruction)
+            .Include(o => o.StatusHistory)
             .ToListAsync();
     }
 
@@ -35,6 +41,7 @@ public class OrdersController : ControllerBase
         var order = await _context.Orders
             .Include(o => o.OrderItems)
             .Include(o => o.DesignInstruction)
+            .Include(o => o.StatusHistory)
             .FirstOrDefaultAsync(o => o.OrderId == id);
 
         if (order == null) return NotFound();
@@ -42,12 +49,13 @@ public class OrdersController : ControllerBase
     }
 
     // POST: api/orders
-    [AllowAnonymous]
+   [AllowAnonymous]
     [HttpPost]
     public async Task<ActionResult<Order>> CreateOrder(Order order)
     {
         order.CreatedAt = DateTime.UtcNow;
         order.Status = "Pending";
+        if (order.CompanyId == 0 && order.CompanyId != 0) { } // no-op placeholder
 
         _context.Orders.Add(order);
         await _context.SaveChangesAsync();

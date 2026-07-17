@@ -37,7 +37,10 @@ builder.Services.AddAuthorization();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins(
+                "http://localhost:5173",
+                "http://cakeflow-app.runasp.net"
+              )
               .AllowAnyHeader()
               .AllowAnyMethod());
 });
@@ -48,6 +51,7 @@ var cloudinaryAccount = new Account(
     builder.Configuration["Cloudinary:ApiSecret"]
 );
 builder.Services.AddSingleton(new Cloudinary(cloudinaryAccount));
+builder.Services.AddSingleton(new EmailService(builder.Configuration["Resend:ApiKey"]!));
 
 // Add services to the container.
 

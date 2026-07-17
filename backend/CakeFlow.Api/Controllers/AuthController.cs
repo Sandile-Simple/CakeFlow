@@ -37,27 +37,7 @@ public class AuthController : ControllerBase
         public string Password { get; set; } = string.Empty;
     }
 
-    [HttpPost("register")]
-    public async Task<IActionResult> Register(RegisterRequest request)
-    {
-        if (await _context.Users.AnyAsync(u => u.Email == request.Email))
-            return BadRequest("A user with this email already exists.");
-
-        var user = new User
-        {
-            Name = request.Name,
-            Email = request.Email,
-            Role = request.Role,
-            Branch = request.Branch,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password)
-        };
-
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-
-        return Ok(new { user.UserId, user.Name, user.Email, user.Role, user.Branch });
-    }
-
+   
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginRequest request)
     {
@@ -71,7 +51,8 @@ public class AuthController : ControllerBase
             new Claim(ClaimTypes.Name, user.Name),
             new Claim(ClaimTypes.Email, user.Email),
             new Claim(ClaimTypes.Role, user.Role),
-            new Claim("Branch", user.Branch)
+            new Claim("Branch", user.Branch),
+            new Claim("CompanyId", user.CompanyId.ToString())
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
