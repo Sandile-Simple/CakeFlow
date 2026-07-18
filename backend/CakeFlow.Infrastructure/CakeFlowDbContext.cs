@@ -12,4 +12,5 @@ public class CakeFlowDbContext : DbContext
     public DbSet<DesignInstruction> DesignInstructions => Set<DesignInstruction>();
     public DbSet<User> Users => Set<User>();
     public DbSet<StatusHistory> StatusHistories => Set<StatusHistory>();
+    public DbSet<PriceConfig> PriceConfigs => Set<PriceConfig>();
 }

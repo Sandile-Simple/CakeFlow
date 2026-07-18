@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import logo from "../../assets/logo.png";
 
@@ -6,7 +6,7 @@ const API_BASE = window.location.hostname === "localhost"
   ? "http://localhost:5083/api"
   : "http://cakeflow.runasp.net/api";
 
-// ---------- CONFIG — edit prices/lists here ----------
+// ---------- CONFIG — non-price lists live here; prices come from the server ----------
 const BRANCHES = ["Harare", "Bulawayo"];
 
 const PRODUCT_TYPES = [
@@ -14,21 +14,20 @@ const PRODUCT_TYPES = [
   { key: "Cupcakes", label: "Cupcakes", desc: "Boxes of 6, 12, 18, 24 and above", icon: "🧁" },
 ];
 
-// ---- Cupcakes ----
-const CUPCAKE_TYPES = [
-  { key: "Plain", label: "Plain Cupcakes", desc: "Simple, classic finish", pricePerUnit: 1, icon: "🧁" },
-  { key: "Themed", label: "Themed Cupcakes", desc: "Custom themed decoration", pricePerUnit: 1.5, icon: "🎨" },
-];
 const CUPCAKE_QTY_PRESETS = [6, 12, 18, 24];
 const CUPCAKE_QTY_STEP = 6;
 const CUPCAKE_FLAVOR_COUNT = 2;
 
 const CAKE_TYPES = [
-  { key: "Cake Fairy Cake", label: "Cake Fairy Cake", desc: "Our signature cakes", basePrice: 20, size: "8 inches", flavorList: "basic", hasIcing: false, icon: "✨" },
-  { key: "Fresh Cream Cake", label: "Fresh Cream Cake", desc: "Classic fresh cream cakes", basePrice: 25, size: "8 inches", flavorList: "basic", hasIcing: false, icon: "🎂" },
-  { key: "Themed Cake", label: "Themed Cake", desc: "Custom themed designs", basePrice: 35, size: "8 inches", flavorList: "extended", hasIcing: true, icon: "🎨" },
-  { key: "Tiered Cake", label: "Tiered Cake", desc: "2-tier and 3-tier cakes", basePrice: 60, size: "2-tier", flavorList: "extended", hasIcing: true, icon: "📚" },
+  { key: "Cake Fairy Cake", label: "Cake Fairy Cake", desc: "Our signature cakes", flavorList: "basic", hasIcing: false, usesSizeTable: false, size: "8 inches", icon: "✨" },
+  { key: "Fresh Cream Cake", label: "Fresh Cream Cake", desc: "Classic fresh cream cakes", flavorList: "basic", hasIcing: false, usesSizeTable: true, icon: "🎂" },
+  { key: "Themed Cake", label: "Themed Cake", desc: "Custom themed designs", flavorList: "extended", hasIcing: true, usesSizeTable: true, icon: "🎨" },
+  { key: "Tiered Cake", label: "Tiered Cake", desc: "2-tier and 3-tier cakes", flavorList: "extended", hasIcing: true, usesSizeTable: false, size: "2-tier", icon: "📚" },
+  { key: "3D Cake", label: "3D Cake", desc: "Custom sculpted 3D cakes", flavorList: "extended", hasIcing: true, usesSizeTable: false, size: "Custom", icon: "🧊" },
 ];
+
+const CAKE_SIZES = [8, 10, 12, 14, 16];
+const CAKE_SHAPES = ["Round", "Square"];
 
 const OCCASIONS = [
   { key: "Birthday", icon: "🎉" },
@@ -45,18 +44,42 @@ const EXTENDED_FLAVORS = [
   "Black Forest", "Cookies and Cream", "Chocolate", "Cheesecake", "Strawberry",
   "Lemon", "Blueberry", "Choc Mint", "Marble", "Funfetti", "Coconut",
   "Fruit Cake", "Red Velvet", "Red Velvet Cheese", "Coffee", "Pistachio", "Orange", "Vanilla",
+  "Choc Orange", "Vanilla Cherry", "Amarula", "Caramel", "Strawberry Pistachio",
+  "Choc Marble", "Rainbow", "Bubble Gum", "Red Velvet Marble", "Passion Velvet", "Chocolate Mousse",
 ];
 const SIDE_CAKE_FLAVORS = ["Chocolate", "Vanilla", "Marble", "Red Velvet", "Lemon", "Coconut"];
 
 const ICING_TYPES = ["Buttercream", "Fondant", "Whipped Cream", "Custom"];
-const TIME_WINDOWS = ["9:00 AM - 11:00 AM", "11:00 AM - 1:00 PM", "1:00 PM - 3:00 PM", "3:00 PM - 5:00 PM", "5:00 PM - 7:00 PM"];
-const REFERRAL_SOURCES = ["IG", "FB", "TikTok", "Word of mouth", "Other"];
 
+const TIME_WINDOWS_WEEKDAY = [
+  "10:00 AM - 10:30 AM", "10:30 AM - 11:00 AM", "11:00 AM - 11:30 AM",
+  "11:30 AM - 12:00 PM", "12:00 PM - 12:30 PM", "12:30 PM - 1:00 PM",
+  "1:00 PM - 1:30 PM", "1:30 PM - 2:00 PM", "2:00 PM - 2:30 PM",
+  "2:30 PM - 3:00 PM", "3:00 PM - 3:30 PM", "3:30 PM - 4:00 PM",
+  "4:00 PM - 4:30 PM", "4:30 PM - 5:00 PM", "5:00 PM - 5:30 PM",
+];
+const TIME_WINDOWS_SATURDAY = [
+  "10:00 AM - 10:30 AM", "10:30 AM - 11:00 AM", "11:00 AM - 11:30 AM",
+  "11:30 AM - 12:00 PM", "12:00 PM - 12:30 PM", "12:30 PM - 1:00 PM",
+  "1:00 PM - 1:30 PM", "1:30 PM - 2:00 PM", "2:00 PM - 2:30 PM",
+  "2:30 PM - 3:00 PM", "3:00 PM - 3:30 PM", "3:30 PM - 4:00 PM",
+  "4:00 PM - 4:30 PM",
+];
+const TIME_WINDOWS_SUNDAY = [
+  "10:00 AM - 10:30 AM", "10:30 AM - 11:00 AM", "11:00 AM - 11:30 AM",
+  "11:30 AM - 12:00 PM", "12:00 PM - 12:30 PM", "12:30 PM - 1:00 PM",
+  "1:00 PM - 1:30 PM", "1:30 PM - 2:00 PM",
+];
+
+function getTimeWindowsForDate(date) {
+  const day = date.getDay();
+  if (day === 0) return TIME_WINDOWS_SUNDAY;
+  if (day === 6) return TIME_WINDOWS_SATURDAY;
+  return TIME_WINDOWS_WEEKDAY;
+}
+
+const REFERRAL_SOURCES = ["IG", "FB", "TikTok", "WhatsApp", "Word of mouth", "Other"];
 const MAX_FLAVORS = 3;
-const EXTRA_FLAVOR_FEE = 5;
-const ACCESSORIES_FEE = 5;
-
-const WEDDING_STARTING_PRICE = 500;
 const WEDDING_MIN_LEAD_MONTHS = 2;
 
 // ---------- Styles ----------
@@ -75,8 +98,6 @@ const COLORS = {
 const s = {
   page: { minHeight: "100vh", background: `linear-gradient(180deg, ${COLORS.bg}, #ffffff)`, padding: "36px 16px", fontFamily: "'Segoe UI', sans-serif" },
   brandWrap: { textAlign: "center", marginBottom: 28 },
-  brandTitle: { fontSize: 40, fontFamily: "Georgia, serif", color: COLORS.text, margin: 0 },
-  brandTitlePink: { color: COLORS.pink },
   brandSub: { fontSize: 15, color: COLORS.muted, marginTop: 4 },
   card: { maxWidth: 620, margin: "0 auto", background: COLORS.card, borderRadius: 20, padding: "30px 26px", boxShadow: "0 10px 30px rgba(233,30,99,0.10)" },
   progressWrap: { maxWidth: 620, margin: "0 auto 14px" },
@@ -87,12 +108,22 @@ const s = {
   h1sub: { fontSize: 13.5, textAlign: "center", color: COLORS.muted, margin: "0 0 22px" },
   grid2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 },
   grid3: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 },
+  grid5: { display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10 },
   optionCard: (active) => ({
     position: "relative",
     border: `2px solid ${active ? COLORS.pink : COLORS.border}`,
     background: active ? COLORS.pinkSoft : "#fff",
     borderRadius: 14,
     padding: "16px 14px",
+    textAlign: "center",
+    cursor: "pointer",
+  }),
+  smallOptionCard: (active) => ({
+    position: "relative",
+    border: `2px solid ${active ? COLORS.pink : COLORS.border}`,
+    background: active ? COLORS.pinkSoft : "#fff",
+    borderRadius: 12,
+    padding: "12px 8px",
     textAlign: "center",
     cursor: "pointer",
   }),
@@ -135,6 +166,7 @@ const s = {
   smallNote: { fontSize: 12, color: COLORS.muted, marginTop: 6 },
   numberInput: { width: 100, padding: "9px 12px", borderRadius: 10, border: `1.5px solid ${COLORS.border}`, fontSize: 14, outline: "none" },
   subLabel: { fontSize: 13, fontWeight: 600, color: COLORS.text, marginTop: 14, marginBottom: 6 },
+  loadingWrap: { textAlign: "center", color: COLORS.muted, marginTop: 100 },
 };
 
 function StepShell({ title, subtitle, children, step, total }) {
@@ -160,41 +192,42 @@ function StepShell({ title, subtitle, children, step, total }) {
 }
 
 export default function BookingWizard() {
-  const [page, setPage] = useState("branch"); // branch -> wizard -> success
+  const [page, setPage] = useState("branch");
   const [stepIndex, setStepIndex] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [priceConfig, setPriceConfig] = useState(null);
+  const [priceError, setPriceError] = useState(false);
+
+  useEffect(() => {
+    axios.get(`${API_BASE}/priceconfig`)
+      .then((res) => setPriceConfig(JSON.parse(res.data.configJson)))
+      .catch(() => setPriceError(true));
+  }, []);
 
   const [form, setForm] = useState({
     branch: "",
     productType: "",
-
-    // cake
     cakeType: "",
     themeText: "",
     cakeMessage: "",
+    cakeColour: "",
+    cakeSize: null,
+    cakeShape: "",
     flavors: [],
     icing: "",
-
-    // cupcakes
     cupcakeType: "",
     cupcakeQty: null,
     cupcakeCustomQty: "",
     cupcakeFlavors: [],
-
-    // occasion
     occasion: "",
     occasionOther: "",
-
-    // wedding
     weddingTiers: "",
     weddingFruitTiers: "",
     weddingSideFlavor1: "",
     weddingSideFlavor2: "",
-
-    // logistics / details
     timeWindow: "",
     heardAbout: "",
     addAccessories: false,
@@ -212,9 +245,20 @@ export default function BookingWizard() {
   const selectedCakeType = CAKE_TYPES.find((c) => c.key === form.cakeType);
   const isThemedCake = form.cakeType === "Themed Cake";
   const isWedding = form.productType === "Cake" && form.occasion === "Wedding";
+  const usesSizeTable = selectedCakeType?.usesSizeTable;
 
   const flavorList = () => (selectedCakeType?.flavorList === "extended" ? EXTENDED_FLAVORS : BASIC_FLAVORS);
   const needsIcing = !isWedding && form.productType === "Cake" && selectedCakeType?.hasIcing;
+
+  const getCakeTypeStartingPrice = (key) => {
+    if (!priceConfig) return "";
+    const type = CAKE_TYPES.find((c) => c.key === key);
+    if (type?.usesSizeTable) return priceConfig.roundSizes["8"];
+    if (key === "Cake Fairy Cake") return priceConfig.cakeFairyCakePrice;
+    if (key === "Tiered Cake") return priceConfig.tieredCakeStartingPrice;
+    if (key === "3D Cake") return priceConfig.threeDStartingPrice;
+    return "";
+  };
 
   const steps = (() => {
     const arr = ["type"];
@@ -223,13 +267,12 @@ export default function BookingWizard() {
       if (isWedding) {
         arr.push("weddingDetails");
       } else {
+        if (usesSizeTable) arr.push("sizeColourShape");
         arr.push("flavor");
         if (needsIcing) arr.push("icing");
       }
     }
-    if (form.productType === "Cupcakes") {
-      arr.push("cupcakeDetails");
-    }
+    if (form.productType === "Cupcakes") arr.push("cupcakeDetails");
     arr.push("logistics", "details");
     return arr;
   })();
@@ -244,14 +287,36 @@ export default function BookingWizard() {
   };
 
   const calcTotal = () => {
+    if (!priceConfig) return 0;
     if (form.productType === "Cupcakes") {
-      const unit = form.cupcakeType === "Themed" ? CUPCAKE_TYPES[1].pricePerUnit : CUPCAKE_TYPES[0].pricePerUnit;
+      const unit = form.cupcakeType === "Themed" ? priceConfig.cupcakeThemedPrice : priceConfig.cupcakePlainPrice;
       return (form.cupcakeQty || 0) * unit;
     }
-    if (isWedding) return null; // quote-based, no fixed number
-    let base = selectedCakeType?.basePrice || 0;
-    const extra = Math.max(0, form.flavors.length - 1) * EXTRA_FLAVOR_FEE;
-    const accessories = form.addAccessories ? ACCESSORIES_FEE : 0;
+    if (isWedding) return null;
+
+    const isThemedFondant = isThemedCake && form.icing === "Fondant";
+    if (isThemedFondant) {
+      return priceConfig.themedFondantSizePrices?.[form.cakeSize] || 0;
+    }
+
+    let base = 0;
+    if (usesSizeTable) {
+      const table = form.cakeShape === "Round" ? priceConfig.roundSizes : priceConfig.squareSizes;
+      base = table?.[form.cakeSize] || 0;
+    } else if (form.cakeType === "Cake Fairy Cake") {
+      base = priceConfig.cakeFairyCakePrice;
+    } else if (form.cakeType === "Tiered Cake") {
+      base = priceConfig.tieredCakeStartingPrice;
+    } else if (form.cakeType === "3D Cake") {
+      base = priceConfig.threeDStartingPrice;
+    }
+
+    if (isThemedCake && form.icing === "Buttercream") {
+      base += priceConfig.buttercreamIcingFee;
+    }
+
+    const extra = Math.max(0, form.flavors.length - 1) * priceConfig.extraFlavorFee;
+    const accessories = form.addAccessories ? priceConfig.accessoriesFee : 0;
     return base + extra + accessories;
   };
 
@@ -279,10 +344,7 @@ export default function BookingWizard() {
 
   const handleCustomQtyChange = (val) => {
     const n = parseInt(val, 10);
-    set({
-      cupcakeCustomQty: val,
-      cupcakeQty: !isNaN(n) ? n : null,
-    });
+    set({ cupcakeCustomQty: val, cupcakeQty: !isNaN(n) ? n : null });
   };
 
   const minCollectionDate = () => {
@@ -293,45 +355,24 @@ export default function BookingWizard() {
 
   const canContinue = () => {
     switch (currentKey) {
-      case "type":
-        return !!form.productType;
-      case "cakeType":
-        return !!form.cakeType && (!isThemedCake || form.themeText.trim() !== "");
-      case "occasion":
-        return !!form.occasion && (form.occasion !== "Other" || form.occasionOther.trim() !== "");
-      case "flavor":
-        return form.flavors.length > 0;
-      case "icing":
-        return !!form.icing;
+      case "type": return !!form.productType;
+      case "cakeType": return !!form.cakeType && (!isThemedCake || form.themeText.trim() !== "");
+      case "sizeColourShape": return !!form.cakeSize && !!form.cakeShape && form.cakeColour.trim() !== "";
+      case "occasion": return !!form.occasion && (form.occasion !== "Other" || form.occasionOther.trim() !== "");
+      case "flavor": return form.flavors.length > 0;
+      case "icing": return !!form.icing;
       case "weddingDetails": {
         const tiers = Number(form.weddingTiers);
         const fruit = Number(form.weddingFruitTiers);
-        return (
-          tiers >= 1 &&
-          !isNaN(fruit) &&
-          fruit >= 0 &&
-          fruit <= tiers &&
-          !!form.weddingSideFlavor1 &&
-          !!form.weddingSideFlavor2
-        );
+        return tiers >= 1 && !isNaN(fruit) && fruit >= 0 && fruit <= tiers && !!form.weddingSideFlavor1 && !!form.weddingSideFlavor2;
       }
       case "cupcakeDetails":
-        return (
-          !!form.cupcakeType &&
-          !!form.cupcakeQty &&
-          form.cupcakeQty >= CUPCAKE_QTY_STEP &&
-          form.cupcakeQty % CUPCAKE_QTY_STEP === 0 &&
-          form.cupcakeFlavors.length === CUPCAKE_FLAVOR_COUNT
-        );
+        return !!form.cupcakeType && !!form.cupcakeQty && form.cupcakeQty >= CUPCAKE_QTY_STEP &&
+          form.cupcakeQty % CUPCAKE_QTY_STEP === 0 && form.cupcakeFlavors.length === CUPCAKE_FLAVOR_COUNT;
       case "logistics":
-        return !!form.timeWindow && !!form.heardAbout;
+        return !!form.collectionDate && (!isWedding || form.collectionDate >= minCollectionDate()) && !!form.timeWindow && !!form.heardAbout;
       case "details":
-        return (
-          !!form.fullName &&
-          !!form.phone &&
-          !!form.collectionDate &&
-          (!isWedding || form.collectionDate >= minCollectionDate())
-        );
+        return !!form.fullName && !!form.phone;
       default:
         return true;
     }
@@ -370,9 +411,7 @@ export default function BookingWizard() {
 
       const occasionLabel = form.occasion === "Other" ? `Other — ${form.occasionOther}` : form.occasion;
 
-      let productLabel;
-      let sizeLabel;
-      let flavourLabel;
+      let productLabel, sizeLabel, flavourLabel;
       let notesExtra = [];
 
       if (form.productType === "Cupcakes") {
@@ -389,13 +428,18 @@ export default function BookingWizard() {
           `Side cake 1 flavour: ${form.weddingSideFlavor1}`,
           `Side cake 2 flavour: ${form.weddingSideFlavor2}`,
           `Icing: Fondant`,
-          `Starting price: $${WEDDING_STARTING_PRICE}+ (final quote after consultation)`,
+          `Starting price: $${priceConfig?.weddingStartingPrice}+ (final quote after consultation)`,
           `Installments accepted until 1 week before the wedding date`,
           `Requires wedding coordinator/agent to finalize booking`,
         ];
       } else {
         productLabel = form.cakeType;
-        sizeLabel = selectedCakeType?.size;
+        if (usesSizeTable) {
+          sizeLabel = `${form.cakeShape} — ${form.cakeSize} inches`;
+          notesExtra.push(`Cake colour: ${form.cakeColour}`);
+        } else {
+          sizeLabel = selectedCakeType?.size;
+        }
         flavourLabel = form.flavors.join(", ");
         if (isThemedCake) notesExtra.push(`Theme: ${form.themeText}`);
       }
@@ -407,11 +451,11 @@ export default function BookingWizard() {
         form.icing && `Icing: ${form.icing}`,
         `Time window: ${form.timeWindow}`,
         `Heard about us via: ${form.heardAbout}`,
-        form.addAccessories && `Accessories requested (+$${ACCESSORIES_FEE})`,
+        form.addAccessories && `Accessories requested (+$${priceConfig?.accessoriesFee})`,
         form.bakingInstructions && `Baking notes: ${form.bakingInstructions}`,
         form.email && `Email: ${form.email}`,
         ...notesExtra,
-        isWedding ? `Total: From $${WEDDING_STARTING_PRICE} (final quote)` : `Total: $${calcTotal()}`,
+        isWedding ? `Total: From $${priceConfig?.weddingStartingPrice} (final quote)` : `Total: $${calcTotal()}`,
       ].filter(Boolean).join(" | ");
 
       const orderPayload = {
@@ -420,19 +464,17 @@ export default function BookingWizard() {
         eventDate: form.collectionDate,
         dispatchTime: form.collectionDate,
         branch: form.branch,
-        orderItems: [
-          {
-            cakeType: productLabel,
-            flavour: flavourLabel,
-            size: sizeLabel,
-            quantity: form.productType === "Cupcakes" ? form.cupcakeQty : 1,
-            notes: itemNotes,
-          },
-        ],
+        orderItems: [{
+          cakeType: productLabel,
+          flavour: flavourLabel,
+          size: sizeLabel,
+          quantity: form.productType === "Cupcakes" ? form.cupcakeQty : 1,
+          notes: itemNotes,
+        }],
         designInstruction: {
           referenceImageUrl: imageUrl,
           designNotes: occasionLabel,
-          colourScheme: "",
+          colourScheme: form.cakeColour || "",
           decoratorNotes: form.decoratingInstructions,
         },
       };
@@ -447,7 +489,24 @@ export default function BookingWizard() {
     }
   };
 
-  // ---------- BRANCH PAGE ----------
+  if (!priceConfig && !priceError) {
+    return (
+      <div style={s.page}>
+        <div style={s.loadingWrap}>Loading current prices...</div>
+      </div>
+    );
+  }
+
+  if (priceError) {
+    return (
+      <div style={s.page}>
+        <div style={s.loadingWrap}>
+          Sorry, we couldn't load pricing right now. Please refresh the page or try again shortly.
+        </div>
+      </div>
+    );
+  }
+
   if (page === "branch") {
     return (
       <div style={s.page}>
@@ -460,30 +519,19 @@ export default function BookingWizard() {
           <p style={s.h1sub}>Choose your nearest branch to get started</p>
           <div style={s.grid2}>
             {BRANCHES.map((b) => (
-              <div
-                key={b}
-                style={s.optionCard(form.branch === b)}
-                onClick={() => {
-                  set({ branch: b });
-                  setPage("wizard");
-                  setStepIndex(0);
-                }}
-              >
+              <div key={b} style={s.optionCard(form.branch === b)} onClick={() => { set({ branch: b }); setPage("wizard"); setStepIndex(0); }}>
                 <div style={s.optionIcon}>📍</div>
                 <div style={s.optionLabel}>{b}</div>
                 <div style={s.optionDesc}>{b === "Harare" ? "Main Branch" : `${b} Branch`}</div>
               </div>
             ))}
           </div>
-          <p style={{ textAlign: "center", fontSize: 12.5, color: COLORS.muted, marginTop: 18 }}>
-            Pickup only — Pay on collection
-          </p>
+          <p style={{ textAlign: "center", fontSize: 12.5, color: COLORS.muted, marginTop: 18 }}>Pickup only — Pay on collection</p>
         </div>
       </div>
     );
   }
 
-  // ---------- SUCCESS PAGE ----------
   if (page === "success") {
     return (
       <div style={s.page}>
@@ -500,7 +548,6 @@ export default function BookingWizard() {
     );
   }
 
-  // ---------- WIZARD PAGES ----------
   return (
     <div style={s.page}>
       <div style={s.brandWrap}>
@@ -508,32 +555,30 @@ export default function BookingWizard() {
       </div>
 
       <StepShell
-        title={
-          {
-            type: "What would you like to order?",
-            cakeType: "Choose your cake type",
-            cupcakeDetails: "Cupcake Details",
-            occasion: "What's the occasion?",
-            weddingDetails: "Wedding Cake Details",
-            flavor: "Choose your flavour(s)",
-            icing: "Choose your icing",
-            logistics: "Time & Details",
-            details: "Your Details & Collection",
-          }[currentKey]
-        }
-        subtitle={
-          {
-            type: "Choose your product type",
-            cakeType: "Select the cake that fits your order",
-            cupcakeDetails: `Choose type, quantity (multiples of ${CUPCAKE_QTY_STEP}) and ${CUPCAKE_FLAVOR_COUNT} flavours`,
-            occasion: "Select the celebration type",
-            weddingDetails: "Tell us about your tiers, side cakes and icing",
-            flavor: `Select up to ${MAX_FLAVORS} — extra flavours add $${EXTRA_FLAVOR_FEE} each`,
-            icing: "Select your preferred icing style",
-            logistics: "Pickup window, referral, and any special requests",
-            details: "Tell us how to reach you and when to collect",
-          }[currentKey]
-        }
+        title={{
+          type: "What would you like to order?",
+          cakeType: "Choose your cake type",
+          sizeColourShape: "Size, Colour & Shape",
+          cupcakeDetails: "Cupcake Details",
+          occasion: "What's the occasion?",
+          weddingDetails: "Wedding Cake Details",
+          flavor: "Choose your flavour(s)",
+          icing: "Choose your icing",
+          logistics: "Time & Details",
+          details: "Your Details",
+        }[currentKey]}
+        subtitle={{
+          type: "Choose your product type",
+          cakeType: "Select the cake that fits your order",
+          sizeColourShape: "Pick a size, tell us your colour, then choose round or square",
+          cupcakeDetails: `Choose type, quantity (multiples of ${CUPCAKE_QTY_STEP}) and ${CUPCAKE_FLAVOR_COUNT} flavours`,
+          occasion: "Select the celebration type",
+          weddingDetails: "Tell us about your tiers, side cakes and icing",
+          flavor: `Select up to ${MAX_FLAVORS} — extra flavours add $${priceConfig.extraFlavorFee} each`,
+          icing: "Select your preferred icing style",
+          logistics: "Collection date, pickup window, referral, and any special requests",
+          details: "Tell us how to reach you",
+        }[currentKey]}
         step={stepIndex + 1}
         total={totalSteps}
       >
@@ -542,24 +587,10 @@ export default function BookingWizard() {
         {currentKey === "type" && (
           <div style={s.grid2}>
             {PRODUCT_TYPES.map((p) => (
-              <div
-                key={p.key}
-                style={s.optionCard(form.productType === p.key)}
-                onClick={() =>
-                  set({
-                    productType: p.key,
-                    cakeType: "",
-                    themeText: "",
-                    flavors: [],
-                    cupcakeType: "",
-                    cupcakeQty: null,
-                    cupcakeCustomQty: "",
-                    cupcakeFlavors: [],
-                    occasion: "",
-                    occasionOther: "",
-                  })
-                }
-              >
+              <div key={p.key} style={s.optionCard(form.productType === p.key)} onClick={() => set({
+                productType: p.key, cakeType: "", themeText: "", flavors: [], cakeSize: null, cakeShape: "", cakeColour: "",
+                cupcakeType: "", cupcakeQty: null, cupcakeCustomQty: "", cupcakeFlavors: [], occasion: "", occasionOther: "",
+              })}>
                 {form.productType === p.key && <div style={s.badge}>✓</div>}
                 <div style={s.optionIcon}>{p.icon}</div>
                 <div style={s.optionLabel}>{p.label}</div>
@@ -573,11 +604,11 @@ export default function BookingWizard() {
           <>
             <div style={s.grid2}>
               {CAKE_TYPES.map((c) => (
-                <div key={c.key} style={s.optionCard(form.cakeType === c.key)} onClick={() => set({ cakeType: c.key, flavors: [], themeText: "" })}>
+                <div key={c.key} style={s.optionCard(form.cakeType === c.key)} onClick={() => set({ cakeType: c.key, flavors: [], themeText: "", cakeSize: null, cakeShape: "", cakeColour: "" })}>
                   {form.cakeType === c.key && <div style={s.badge}>✓</div>}
                   <div style={s.optionIcon}>{c.icon}</div>
                   <div style={s.optionLabel}>{c.label}</div>
-                  <div style={s.optionDesc}>From ${c.basePrice} — {c.desc}</div>
+                  <div style={s.optionDesc}>From ${getCakeTypeStartingPrice(c.key)} — {c.desc}</div>
                 </div>
               ))}
             </div>
@@ -585,22 +616,43 @@ export default function BookingWizard() {
             {isThemedCake && (
               <>
                 <label style={s.label}>What's the theme? *</label>
-                <input
-                  style={s.input}
-                  value={form.themeText}
-                  onChange={(e) => set({ themeText: e.target.value })}
-                  placeholder="e.g. Sofia the First, Spiderman, Superman..."
-                />
+                <input style={s.input} value={form.themeText} onChange={(e) => set({ themeText: e.target.value })} placeholder="e.g. Sofia the First, Spiderman, Superman..." />
               </>
             )}
 
             <label style={s.label}>Message to write on the cake (optional)</label>
-            <input
-              style={s.input}
-              value={form.cakeMessage}
-              onChange={(e) => set({ cakeMessage: e.target.value })}
-              placeholder="e.g. Happy Birthday Tanya!"
-            />
+            <input style={s.input} value={form.cakeMessage} onChange={(e) => set({ cakeMessage: e.target.value })} placeholder="e.g. Happy Birthday Tanya!" />
+          </>
+        )}
+
+        {currentKey === "sizeColourShape" && (
+          <>
+            <label style={s.label}>Size *</label>
+            <div style={s.grid5}>
+              {CAKE_SIZES.map((size) => (
+                <div key={size} style={s.smallOptionCard(form.cakeSize === size)} onClick={() => set({ cakeSize: size })}>
+                  <div style={s.optionLabel}>{size}"</div>
+                </div>
+              ))}
+            </div>
+
+            <label style={s.label}>Cake Colour *</label>
+            <input style={s.input} value={form.cakeColour} onChange={(e) => set({ cakeColour: e.target.value })} placeholder="e.g. Pink and gold, All white..." />
+
+            <label style={s.label}>Shape *</label>
+            <div style={s.grid2}>
+              {CAKE_SHAPES.map((shape) => (
+                <div key={shape} style={s.optionCard(form.cakeShape === shape)} onClick={() => set({ cakeShape: shape })}>
+                  {form.cakeShape === shape && <div style={s.badge}>✓</div>}
+                  <div style={s.optionLabel}>{shape}</div>
+                  {form.cakeSize && (
+                    <div style={s.optionDesc}>
+                      ${shape === "Round" ? priceConfig.roundSizes[form.cakeSize] : priceConfig.squareSizes[form.cakeSize]}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </>
         )}
 
@@ -608,22 +660,24 @@ export default function BookingWizard() {
           <>
             <label style={s.label}>Cupcake Type *</label>
             <div style={s.grid2}>
-              {CUPCAKE_TYPES.map((c) => (
-                <div key={c.key} style={s.optionCard(form.cupcakeType === c.key)} onClick={() => set({ cupcakeType: c.key })}>
-                  {form.cupcakeType === c.key && <div style={s.badge}>✓</div>}
-                  <div style={s.optionIcon}>{c.icon}</div>
-                  <div style={s.optionLabel}>{c.label}</div>
-                  <div style={s.optionDesc}>${c.pricePerUnit.toFixed(2)} each — {c.desc}</div>
-                </div>
-              ))}
+              <div style={s.optionCard(form.cupcakeType === "Plain")} onClick={() => set({ cupcakeType: "Plain" })}>
+                {form.cupcakeType === "Plain" && <div style={s.badge}>✓</div>}
+                <div style={s.optionIcon}>🧁</div>
+                <div style={s.optionLabel}>Plain Cupcakes</div>
+                <div style={s.optionDesc}>${priceConfig.cupcakePlainPrice.toFixed(2)} each — Simple, classic finish</div>
+              </div>
+              <div style={s.optionCard(form.cupcakeType === "Themed")} onClick={() => set({ cupcakeType: "Themed" })}>
+                {form.cupcakeType === "Themed" && <div style={s.badge}>✓</div>}
+                <div style={s.optionIcon}>🎨</div>
+                <div style={s.optionLabel}>Themed Cupcakes</div>
+                <div style={s.optionDesc}>${priceConfig.cupcakeThemedPrice.toFixed(2)} each — Custom themed decoration</div>
+              </div>
             </div>
 
             <label style={s.label}>Quantity * (minimum 6, in multiples of 6)</label>
             <div style={s.pillRow}>
               {CUPCAKE_QTY_PRESETS.map((n) => (
-                <div key={n} style={s.pill(form.cupcakeQty === n && form.cupcakeCustomQty === "")} onClick={() => pickCupcakeQty(n)}>
-                  {n}
-                </div>
+                <div key={n} style={s.pill(form.cupcakeQty === n && form.cupcakeCustomQty === "")} onClick={() => pickCupcakeQty(n)}>{n}</div>
               ))}
               <div style={s.pill(form.cupcakeCustomQty !== "")} onClick={() => set({ cupcakeCustomQty: form.cupcakeCustomQty || "30", cupcakeQty: form.cupcakeQty && form.cupcakeQty > 24 ? form.cupcakeQty : 30 })}>
                 Above 24
@@ -631,32 +685,21 @@ export default function BookingWizard() {
             </div>
             {form.cupcakeCustomQty !== "" && (
               <>
-                <input
-                  style={{ ...s.numberInput, marginTop: 10 }}
-                  type="number"
-                  min={CUPCAKE_QTY_STEP}
-                  step={CUPCAKE_QTY_STEP}
-                  value={form.cupcakeCustomQty}
-                  onChange={(e) => handleCustomQtyChange(e.target.value)}
-                />
-                {form.cupcakeQty && form.cupcakeQty % CUPCAKE_QTY_STEP !== 0 && (
-                  <p style={s.smallNote}>Quantity must be a multiple of {CUPCAKE_QTY_STEP}.</p>
-                )}
+                <input style={{ ...s.numberInput, marginTop: 10 }} type="number" min={CUPCAKE_QTY_STEP} step={CUPCAKE_QTY_STEP} value={form.cupcakeCustomQty} onChange={(e) => handleCustomQtyChange(e.target.value)} />
+                {form.cupcakeQty && form.cupcakeQty % CUPCAKE_QTY_STEP !== 0 && <p style={s.smallNote}>Quantity must be a multiple of {CUPCAKE_QTY_STEP}.</p>}
               </>
             )}
             {form.cupcakeQty > 0 && (
               <p style={s.smallNote}>
-                {form.cupcakeQty} cupcakes × ${(form.cupcakeType === "Themed" ? 1.5 : 1).toFixed(2)} = $
-                {(form.cupcakeQty * (form.cupcakeType === "Themed" ? 1.5 : 1)).toFixed(2)}
+                {form.cupcakeQty} cupcakes × ${(form.cupcakeType === "Themed" ? priceConfig.cupcakeThemedPrice : priceConfig.cupcakePlainPrice).toFixed(2)} = $
+                {(form.cupcakeQty * (form.cupcakeType === "Themed" ? priceConfig.cupcakeThemedPrice : priceConfig.cupcakePlainPrice)).toFixed(2)}
               </p>
             )}
 
             <label style={s.label}>Choose {CUPCAKE_FLAVOR_COUNT} flavours *</label>
             <div style={s.pillRow}>
               {BASIC_FLAVORS.map((f) => (
-                <div key={f} style={s.pill(form.cupcakeFlavors.includes(f))} onClick={() => toggleCupcakeFlavor(f)}>
-                  {f}
-                </div>
+                <div key={f} style={s.pill(form.cupcakeFlavors.includes(f))} onClick={() => toggleCupcakeFlavor(f)}>{f}</div>
               ))}
             </div>
             <p style={s.smallNote}>Selected: {form.cupcakeFlavors.length}/{CUPCAKE_FLAVOR_COUNT}</p>
@@ -676,18 +719,11 @@ export default function BookingWizard() {
             {form.occasion === "Other" && (
               <>
                 <label style={s.label}>Please specify *</label>
-                <input
-                  style={s.input}
-                  value={form.occasionOther}
-                  onChange={(e) => set({ occasionOther: e.target.value })}
-                  placeholder="Tell us the occasion"
-                />
+                <input style={s.input} value={form.occasionOther} onChange={(e) => set({ occasionOther: e.target.value })} placeholder="Tell us the occasion" />
               </>
             )}
             {form.productType === "Cake" && form.occasion === "Wedding" && (
-              <div style={{ ...s.infoBanner, marginTop: 16 }}>
-                💍 Wedding cakes have a dedicated booking flow — next you'll set your tiers, side cakes and icing.
-              </div>
+              <div style={{ ...s.infoBanner, marginTop: 16 }}>💍 Wedding cakes have a dedicated booking flow — next you'll set your tiers, side cakes and icing.</div>
             )}
           </>
         )}
@@ -695,50 +731,30 @@ export default function BookingWizard() {
         {currentKey === "weddingDetails" && (
           <>
             <div style={s.infoBanner}>
-              Wedding cakes start from ${WEDDING_STARTING_PRICE} and the final price depends on design and tiers.
-              All wedding cakes are finished in fondant icing. A wedding coordinator will contact you to finalize
-              your booking and confirm the exact quote.
+              Wedding cakes start from ${priceConfig.weddingStartingPrice} and the final price depends on design and tiers.
+              All wedding cakes are finished in fondant icing. A wedding coordinator will contact you to finalize your booking and confirm the exact quote.
             </div>
 
             <label style={s.label}>Number of tiers *</label>
-            <input
-              style={s.numberInput}
-              type="number"
-              min={1}
-              value={form.weddingTiers}
-              onChange={(e) => set({ weddingTiers: e.target.value })}
-            />
+            <input style={s.numberInput} type="number" min={1} value={form.weddingTiers} onChange={(e) => set({ weddingTiers: e.target.value })} />
 
             <label style={s.label}>How many of those tiers are fruit cake? *</label>
-            <input
-              style={s.numberInput}
-              type="number"
-              min={0}
-              max={form.weddingTiers || undefined}
-              value={form.weddingFruitTiers}
-              onChange={(e) => set({ weddingFruitTiers: e.target.value })}
-            />
+            <input style={s.numberInput} type="number" min={0} max={form.weddingTiers || undefined} value={form.weddingFruitTiers} onChange={(e) => set({ weddingFruitTiers: e.target.value })} />
             {form.weddingTiers !== "" && form.weddingFruitTiers !== "" && (
-              <p style={s.smallNote}>
-                {form.weddingFruitTiers} fruit cake tier(s) + {weddingDummyTiers()} dummy tier(s) = {form.weddingTiers} total tiers
-              </p>
+              <p style={s.smallNote}>{form.weddingFruitTiers} fruit cake tier(s) + {weddingDummyTiers()} dummy tier(s) = {form.weddingTiers} total tiers</p>
             )}
 
             <div style={s.subLabel}>Side Cake 1 — flavour *</div>
             <div style={s.pillRow}>
               {SIDE_CAKE_FLAVORS.map((f) => (
-                <div key={f} style={s.pill(form.weddingSideFlavor1 === f)} onClick={() => set({ weddingSideFlavor1: f })}>
-                  {f}
-                </div>
+                <div key={f} style={s.pill(form.weddingSideFlavor1 === f)} onClick={() => set({ weddingSideFlavor1: f })}>{f}</div>
               ))}
             </div>
 
             <div style={s.subLabel}>Side Cake 2 — flavour *</div>
             <div style={s.pillRow}>
               {SIDE_CAKE_FLAVORS.map((f) => (
-                <div key={f} style={s.pill(form.weddingSideFlavor2 === f)} onClick={() => set({ weddingSideFlavor2: f })}>
-                  {f}
-                </div>
+                <div key={f} style={s.pill(form.weddingSideFlavor2 === f)} onClick={() => set({ weddingSideFlavor2: f })}>{f}</div>
               ))}
             </div>
 
@@ -746,30 +762,16 @@ export default function BookingWizard() {
             <div style={{ ...s.pill(true), cursor: "default", display: "inline-block" }}>Fondant (standard for all wedding cakes)</div>
 
             <label style={s.label}>Message to write on the cake (optional)</label>
-            <input
-              style={s.input}
-              value={form.cakeMessage}
-              onChange={(e) => set({ cakeMessage: e.target.value })}
-              placeholder="e.g. Mr & Mrs Moyo"
-            />
+            <input style={s.input} value={form.cakeMessage} onChange={(e) => set({ cakeMessage: e.target.value })} placeholder="e.g. Mr & Mrs Moyo" />
 
             <label style={s.label}>Design / decorating notes (optional)</label>
-            <textarea
-              style={s.textarea}
-              rows={2}
-              value={form.decoratingInstructions}
-              onChange={(e) => set({ decoratingInstructions: e.target.value })}
-              placeholder="Colour scheme, flowers, toppers, inspiration..."
-            />
+            <textarea style={s.textarea} rows={2} value={form.decoratingInstructions} onChange={(e) => set({ decoratingInstructions: e.target.value })} placeholder="Colour scheme, flowers, toppers, inspiration..." />
 
             <label style={s.label}>Reference Image (optional)</label>
             <input type="file" accept="image/*" onChange={handleImageChange} />
             {imagePreview && <img src={imagePreview} alt="preview" style={{ width: "100%", marginTop: 10, borderRadius: 10, border: `1.5px solid ${COLORS.border}` }} />}
 
-            <p style={s.smallNote}>
-              Note: your wedding date must be booked at least {WEDDING_MIN_LEAD_MONTHS} months in advance. We accept
-              installment payments up to 1 week before the wedding day.
-            </p>
+            <p style={s.smallNote}>Note: your wedding date must be booked at least {WEDDING_MIN_LEAD_MONTHS} months in advance. We accept installment payments up to 1 week before the wedding day.</p>
           </>
         )}
 
@@ -777,51 +779,59 @@ export default function BookingWizard() {
           <>
             <div style={s.pillRow}>
               {flavorList().map((f) => (
-                <div key={f} style={s.pill(form.flavors.includes(f))} onClick={() => toggleFlavor(f)}>
-                  {f}
-                </div>
+                <div key={f} style={s.pill(form.flavors.includes(f))} onClick={() => toggleFlavor(f)}>{f}</div>
               ))}
             </div>
-            <p style={{ fontSize: 12.5, color: COLORS.muted, marginTop: 12 }}>
-              Selected: {form.flavors.length}/{MAX_FLAVORS}
-            </p>
+            <p style={{ fontSize: 12.5, color: COLORS.muted, marginTop: 12 }}>Selected: {form.flavors.length}/{MAX_FLAVORS}</p>
           </>
         )}
 
         {currentKey === "icing" && (
-          <div style={s.pillRow}>
-            {ICING_TYPES.map((i) => (
-              <div key={i} style={s.pill(form.icing === i)} onClick={() => set({ icing: i })}>
-                {i}
-              </div>
-            ))}
-          </div>
+          <>
+            <div style={s.pillRow}>
+              {ICING_TYPES.map((i) => (
+                <div key={i} style={s.pill(form.icing === i)} onClick={() => set({ icing: i })}>
+                  {i}
+                  {isThemedCake && i === "Buttercream" ? ` (+$${priceConfig.buttercreamIcingFee})` : ""}
+                  {isThemedCake && i === "Fondant" && form.cakeSize ? ` ($${priceConfig.themedFondantSizePrices[form.cakeSize]} flat)` : ""}
+                </div>
+              ))}
+            </div>
+            {isThemedCake && form.icing === "Fondant" && (
+              <p style={s.smallNote}>Fondant icing on Themed Cakes sets your total to a flat ${priceConfig.themedFondantSizePrices[form.cakeSize]} for the {form.cakeSize}" size, regardless of flavours or accessories.</p>
+            )}
+          </>
         )}
 
         {currentKey === "logistics" && (
           <>
+            <label style={s.label}>{isWedding ? "Wedding Date *" : "Collection Date *"}</label>
+            <input style={s.input} type="date" value={form.collectionDate} onChange={(e) => set({ collectionDate: e.target.value, timeWindow: "" })} min={minCollectionDate()} />
+            {isWedding && (
+              <p style={s.smallNote}>Wedding bookings require at least {WEDDING_MIN_LEAD_MONTHS} months' notice. Installments are accepted up until 1 week before your wedding date. Our agent will follow up to finalize your booking and confirm the final quote.</p>
+            )}
+
             <label style={s.label}>Time Window *</label>
             <div style={s.grid2}>
-              {TIME_WINDOWS.map((t) => (
+              {(form.collectionDate ? getTimeWindowsForDate(new Date(form.collectionDate)) : []).map((t) => (
                 <div key={t} style={{ ...s.optionCard(form.timeWindow === t), padding: "10px" }} onClick={() => set({ timeWindow: t })}>
                   <div style={{ fontSize: 13 }}>🕐 {t}</div>
                 </div>
               ))}
             </div>
+            {!form.collectionDate && <p style={s.smallNote}>Pick a date above to see available time slots.</p>}
 
             <label style={s.label}>How did you hear about us? *</label>
             <div style={s.pillRow}>
               {REFERRAL_SOURCES.map((r) => (
-                <div key={r} style={s.pill(form.heardAbout === r)} onClick={() => set({ heardAbout: r })}>
-                  {r}
-                </div>
+                <div key={r} style={s.pill(form.heardAbout === r)} onClick={() => set({ heardAbout: r })}>{r}</div>
               ))}
             </div>
 
             {form.productType === "Cake" && !isWedding && (
               <label style={s.checkboxRow}>
                 <input type="checkbox" checked={form.addAccessories} onChange={(e) => set({ addAccessories: e.target.checked })} />
-                Add accessories (+${ACCESSORIES_FEE} flat fee)
+                Add accessories (+${priceConfig.accessoriesFee} flat fee)
               </label>
             )}
 
@@ -857,25 +867,7 @@ export default function BookingWizard() {
               Send order updates via WhatsApp
             </label>
 
-            <div style={{ ...s.pill(true), marginTop: 14, cursor: "default", display: "inline-block" }}>
-              📍 Pickup from: {form.branch} Branch
-            </div>
-
-            <label style={s.label}>{isWedding ? "Wedding Date *" : "Collection Date *"}</label>
-            <input
-              style={s.input}
-              type="date"
-              value={form.collectionDate}
-              onChange={(e) => set({ collectionDate: e.target.value })}
-              min={minCollectionDate()}
-            />
-            {isWedding && (
-              <p style={s.smallNote}>
-                Wedding bookings require at least {WEDDING_MIN_LEAD_MONTHS} months' notice. Installments are accepted
-                up until 1 week before your wedding date. Our agent will follow up to finalize your booking and
-                confirm the final quote.
-              </p>
-            )}
+            <div style={{ ...s.pill(true), marginTop: 14, cursor: "default", display: "inline-block" }}>📍 Pickup from: {form.branch} Branch</div>
           </>
         )}
 
@@ -891,7 +883,7 @@ export default function BookingWizard() {
         <div style={s.totalBar}>
           <span>Total:</span>
           {isWedding ? (
-            <span style={s.totalValue}>From ${WEDDING_STARTING_PRICE}+</span>
+            <span style={s.totalValue}>From ${priceConfig.weddingStartingPrice}+</span>
           ) : (
             <span style={s.totalValue}>${calcTotal()}</span>
           )}

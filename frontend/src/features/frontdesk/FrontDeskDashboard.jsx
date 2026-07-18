@@ -140,7 +140,7 @@ export default function FrontDeskDashboard() {
       return;
     }
     fetchOrders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     // eslint - disable - next - line react - hooks / exhaustive - deps
   }, []);
 
   const markAsDispatched = async (orderId) => {
@@ -205,7 +205,8 @@ export default function FrontDeskDashboard() {
           <button className="cf-logout-btn" style={styles.logoutBtn} onClick={() => navigate("/reports")}>📊 Reports</button>
 	  <button className="cf-logout-btn" style={styles.logoutBtn} onClick={() => navigate("/analytics")}>📈 Analytics</button>
           <button className="cf-logout-btn" style={styles.logoutBtn} onClick={handleLogout}>Log Out</button>
-	     <button className="cf-logout-btn" style={styles.logoutBtn} onClick={() => navigate("/invite-staff")}>👥 Invite Staff</button>
+	  <button className="cf-logout-btn" style={styles.logoutBtn} onClick={() => navigate("/invite-staff")}>👥 Invite Staff</button>
+          <button className="cf-logout-btn" style={styles.logoutBtn} onClick={() => navigate("/price-config")}>💰 Prices</button>
         </div>
       </div>
 

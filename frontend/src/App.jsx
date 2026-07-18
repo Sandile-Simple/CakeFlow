@@ -9,6 +9,7 @@ import AnalyticsDashboard from "./features/analytics/AnalyticsDashboard";
 import RegisterCompany from "./features/auth/RegisterCompany";
 import VerifyEmail from "./features/auth/VerifyEmail";
 import InviteStaff from "./features/frontdesk/InviteStaff";
+import PriceConfigForm from "./features/pricing/PriceConfigForm";
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
 	<Route path="/register-company" element={<RegisterCompany />} />
 	<Route path="/verify-email" element={<VerifyEmail />} />
 	<Route path="/invite-staff" element={<InviteStaff />} />
+        <Route path="/price-config" element={<PriceConfigForm />} />
       </Routes>
     </BrowserRouter>
   );
